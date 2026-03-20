@@ -2,7 +2,6 @@ name: TWSE Capture Job
 
 on:
   schedule:
-    # Taiwan time 18:30 = UTC 10:30
     - cron: "30 10 * * *"
   workflow_dispatch:
 
@@ -24,7 +23,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
 
       - name: Install packages
         run: |
