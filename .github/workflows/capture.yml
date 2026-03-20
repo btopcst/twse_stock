@@ -1,0 +1,27 @@
+name: TWSE Capture Job
+
+on:
+  schedule:
+    - cron: "30 10 * * *"
+  workflow_dispatch:
+
+jobs:
+  run-capture:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install packages
+        run: |
+          pip install pandas requests beautifulsoup4 lxml tqdm openpyxl
+
+      - name: Run TWSE capture
+        run: |
+          python twse_stock_capture.py
