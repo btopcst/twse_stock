@@ -33,8 +33,7 @@ def sanitize_filename(name):
 # --------------------
 def fetch_stock_list():
     urls = {
-        'TWSE': 'https://isin.twse.com.tw/isin/C_public.jsp?strMode=2',
-        'TPEx': 'https://isin.twse.com.tw/isin/C_public.jsp?strMode=4'
+        'TWSE': 'https://isin.twse.com.tw/isin/C_public.jsp?strMode=2'
     }
 
     stock_list = []
@@ -91,16 +90,16 @@ def fetch_monthly_stock_data(stock_id, year, month, retries=2):
             df = pd.DataFrame(data['data'], columns=data['fields'])
 
             df = df[['日期', '最高價', '最低價', '收盤價', '成交股數']]
-            df.columns = ['date', 'high', 'low', 'close', 'volume']
+            df.columns = ['日期', '最高價', '最低價', '收盤價', '成交股數']
 
-            for col in ['high', 'low', 'close', 'volume']:
+            for col in ['最高價', '最低價', '收盤價', '成交股數']:
                 df[col] = pd.to_numeric(
                     df[col].astype(str).str.replace(',', '').replace('--', pd.NA),
                     errors='coerce'
                 )
 
             df['sort_date'] = pd.to_datetime(
-                df['date'].apply(convert_roc_date),
+                df['日期'].apply(convert_roc_date),
                 errors='coerce'
             )
 
@@ -205,8 +204,8 @@ def process_single_stock(row):
             df = fetch_monthly_stock_data(stock_id, query_date.year, query_date.month)
 
             if df is not None and not df.empty:
-                df.insert(0, 'stock_name', raw_name)
-                df.insert(1, 'stock_id', stock_id)
+                df.insert(0, '股票名稱', raw_name)
+                df.insert(1, '股票代號', stock_id)
 
                 all_data.append(df)
                 total_rows += len(df)
@@ -245,10 +244,6 @@ def main():
     os.makedirs(SAVE_FOLDER, exist_ok=True)
 
     print(f"[INFO] Start batch={args.batch}")
-
-    if not args.skip_index and args.batch == 0:
-        print(fetch_index_data('tse'))
-        print(fetch_index_data('otc'))
 
     all_stocks = fetch_stock_list()
     print(f"[INFO] Total stocks: {len(all_stocks)}")
