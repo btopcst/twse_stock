@@ -27,7 +27,7 @@ jobs:
       - name: Install packages
         run: |
           python -m pip install --upgrade pip
-          pip install pandas requests beautifulsoup4 lxml tqdm openpyxl pandas_ta matplotlib numpy
+          pip install pandas requests beautifulsoup4 lxml tqdm openpyxl pandas-ta matplotlib numpy
 
       - name: Run TWSE capture
         run: |
@@ -64,7 +64,7 @@ jobs:
       - name: Install packages
         run: |
           python -m pip install --upgrade pip
-          pip install pandas requests beautifulsoup4 lxml tqdm openpyxl pandas_ta matplotlib numpy
+          pip install pandas requests beautifulsoup4 lxml tqdm openpyxl pandas-ta matplotlib numpy
 
       - name: Run TPEx capture
         run: |
@@ -97,7 +97,7 @@ jobs:
       - name: Install packages
         run: |
           python -m pip install --upgrade pip
-          pip install pandas requests beautifulsoup4 lxml tqdm openpyxl pandas_ta matplotlib numpy
+          pip install pandas requests beautifulsoup4 lxml tqdm openpyxl pandas-ta matplotlib numpy
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
