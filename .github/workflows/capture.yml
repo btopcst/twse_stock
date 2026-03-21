@@ -27,7 +27,7 @@ jobs:
       - name: Install packages
         run: |
           python -m pip install --upgrade pip
-          pip install pandas requests beautifulsoup4 lxml tqdm openpyxl
+          pip install pandas requests beautifulsoup4 lxml tqdm openpyxl pandas_ta matplotlib numpy
 
       - name: Run TWSE capture
         run: |
@@ -64,7 +64,7 @@ jobs:
       - name: Install packages
         run: |
           python -m pip install --upgrade pip
-          pip install pandas requests beautifulsoup4 lxml tqdm openpyxl
+          pip install pandas requests beautifulsoup4 lxml tqdm openpyxl pandas_ta matplotlib numpy
 
       - name: Run TPEx capture
         run: |
@@ -76,4 +76,50 @@ jobs:
           name: tpex-capture-batch-${{ matrix.batch }}
           path: |
             stockList/
+          if-no-files-found: warn
+
+  merge-and-handle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    needs:
+      - run-twse-capture
+      - run-tpex-capture
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas requests beautifulsoup4 lxml tqdm openpyxl pandas_ta matplotlib numpy
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: downloaded_artifacts
+
+      - name: Merge stockList files
+        run: |
+          mkdir -p stockList
+          find downloaded_artifacts -type f -name "*.xlsx" -path "*/stockList/*" -exec cp {} stockList/ \;
+          echo "Merged stock files:"
+          ls stockList | wc -l
+
+      - name: Run stock handle
+        run: |
+          python twse_stock_handle.py
+
+      - name: Upload handle result artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: handle-results
+          path: |
+            summary.xlsx
+            stockData/
           if-no-files-found: warn
