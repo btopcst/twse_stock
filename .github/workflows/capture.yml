@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-capture:
+  run-twse-capture:
     runs-on: ubuntu-latest
     timeout-minutes: 55
 
@@ -33,7 +33,7 @@ jobs:
         run: |
           python twse_stock_capture.py --batch ${{ matrix.batch }} --batch-size 400 --workers 8
 
-      - name: Upload artifacts
+      - name: Upload TWSE artifacts
         uses: actions/upload-artifact@v4
         with:
           name: twse-capture-batch-${{ matrix.batch }}
@@ -41,4 +41,39 @@ jobs:
             stockList/
             stockIndex/
             summary_batch_${{ matrix.batch }}.txt
+          if-no-files-found: warn
+
+  run-tpex-capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+
+    strategy:
+      fail-fast: false
+      matrix:
+        batch: [0, 1, 2, 3]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas requests beautifulsoup4 lxml tqdm openpyxl
+
+      - name: Run TPEx capture
+        run: |
+          python tpex_stock_capture.py --batch ${{ matrix.batch }} --batch-size 250
+
+      - name: Upload TPEx artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tpex-capture-batch-${{ matrix.batch }}
+          path: |
+            stockList/
           if-no-files-found: warn
