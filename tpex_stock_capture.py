@@ -133,13 +133,13 @@ def fetch_monthly(stock_id, year, month):
 
         df = pd.DataFrame(rows)
         df = df[[0, 4, 5, 6, 1]]
-        df.columns = ['date', 'high', 'low', 'close', 'volume']
+        df.columns = ['日期', '最高價', '最低價', '收盤價', '成交量']
 
-        for col in ['high', 'low', 'close', 'volume']:
+        for col in ['最高價', '最低價', '收盤價', '成交量']:
             df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce')
 
-        df['volume'] = df['volume'] * 1000
-        df['sort_date'] = df['date'].apply(parse_any_date)
+        df['成交量'] = df['成交量'] * 1000
+        df['sort_date'] = df['日期'].apply(parse_any_date)
 
         return df.dropna(subset=['sort_date'])
 
@@ -170,8 +170,8 @@ def process_stock(row):
         df = fetch_monthly(stock_id, query_date.year, query_date.month)
 
         if df is not None and not df.empty:
-            df.insert(0, 'stock_name', name)
-            df.insert(1, 'stock_id', stock_id)
+            df.insert(0, '股票名稱', name)
+            df.insert(1, '股票代號', stock_id)
             all_data.append(df)
             total += len(df)
         else:
