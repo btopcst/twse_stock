@@ -248,7 +248,7 @@ def is_first_kd_golden_cross(df, k_col='K值', d_col='D值'):
 
 
 def plot_chart(df, name, code, condition):
-    df = df.sort_values(by='日期').tail(120)
+    df = df.sort_values(by='日期').tail(240)
     upper_col, lower_col = get_bollinger_cols(df)
 
     if condition == 'MACD 柱狀體首次轉正':
@@ -268,7 +268,7 @@ def plot_chart(df, name, code, condition):
         ax1.legend()
 
         if has_macd_hist(df):
-            ax2.bar(df['日期'], df['MACD_HIST'], label='MACD Histogram')
+            ax2.bar(df['日期'], df['MACD_HIST'], label='MACD')
         ax2.axhline(0, color='gray', linestyle='--', linewidth=0.8)
         ax2.set_ylabel("MACD")
         ax2.grid(True)
@@ -320,7 +320,7 @@ def plot_chart(df, name, code, condition):
         ax2.legend(loc='upper left')
 
         if has_macd_hist(df):
-            ax3.bar(df['日期'], df['MACD_HIST'], label='MACD Histogram')
+            ax3.bar(df['日期'], df['MACD_HIST'], label='MACD')
         ax3.axhline(0, color='gray', linestyle='--', linewidth=0.8)
         ax3.set_ylabel("MACD")
         ax3.set_title("MACD")
@@ -365,7 +365,7 @@ def plot_chart(df, name, code, condition):
     ax1.legend()
 
     ax2.bar(df['日期'], df['成交量'], label='Volume', color='gray')
-    ax2.set_title("Last 120 Days Volume")
+    ax2.set_title("Last 240 Days Volume")
     ax2.grid(True)
 
     ax2.xaxis.set_major_locator(mdates.DayLocator(interval=2))
