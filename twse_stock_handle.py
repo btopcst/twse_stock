@@ -11,8 +11,34 @@ import zipfile
 from datetime import datetime
 
 # Set font to support Traditional Chinese
-matplotlib.rcParams['font.family'] = 'Microsoft JhengHei'
-matplotlib.rcParams['axes.unicode_minus'] = False
+#matplotlib.rcParams['font.family'] = 'Microsoft JhengHei'
+#matplotlib.rcParams['axes.unicode_minus'] = False
+
+import warnings
+import matplotlib
+from matplotlib import font_manager
+
+# Cross-platform CJK font fallback
+preferred_fonts = [
+    "Microsoft JhengHei",   # Windows
+    "Noto Sans CJK TC",     # Linux common after installing fonts-noto-cjk
+    "Noto Sans CJK SC",
+    "Noto Sans CJK JP",
+    "SimHei",
+    "Arial Unicode MS",
+    "DejaVu Sans"
+]
+
+available_fonts = {f.name for f in font_manager.fontManager.ttflist}
+selected_font = next((f for f in preferred_fonts if f in available_fonts), "DejaVu Sans")
+
+matplotlib.rcParams["font.family"] = selected_font
+matplotlib.rcParams["axes.unicode_minus"] = False
+
+# Suppress noisy glyph warnings in CI logs
+warnings.filterwarnings("ignore", message="Glyph .* missing from font")
+warnings.filterwarnings("ignore", message="findfont: Font family .* not found")
+
 
 INPUT_FOLDER = "stockList"
 OUTPUT_FOLDER = "stockData"
