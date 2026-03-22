@@ -113,7 +113,11 @@ jobs:
       - name: Merge stockList files
         run: |
           mkdir -p stockList
+          # Copy xlsx files from nested stockList folders
           find downloaded_artifacts -type f -name "*.xlsx" -path "*/stockList/*" -exec cp {} stockList/ \;
+          # Also copy xlsx files directly under artifact root, if any
+          find downloaded_artifacts -type f -name "*.xlsx" ! -path "*/stockList/*" -exec cp {} stockList/ \;
+          
           echo "Merged stock files:"
           ls stockList | wc -l
 
