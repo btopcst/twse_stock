@@ -117,13 +117,18 @@ jobs:
           find downloaded_artifacts -type f -name "*.xlsx" -path "*/stockList/*" -exec cp {} stockList/ \;
           # Also copy xlsx files directly under artifact root, if any
           find downloaded_artifacts -type f -name "*.xlsx" ! -path "*/stockList/*" -exec cp {} stockList/ \;
-          
+
           echo "Merged stock files:"
           ls stockList | wc -l
 
       - name: Run stock handle
         run: |
           python twse_stock_handle.py
+
+      - name: Send Telegram report
+        run: |
+          python send_telegram_report.py
+        continue-on-error: true
 
       - name: Upload handle result artifacts
         uses: actions/upload-artifact@v4
