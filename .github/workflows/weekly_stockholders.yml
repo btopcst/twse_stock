@@ -1,0 +1,46 @@
+name: Weekly Stockholders Job
+
+on:
+  schedule:
+    - cron: "0 7 * * 0"   # –秅ら 07:00 UTC = 芖 15:00
+  workflow_dispatch:
+
+jobs:
+  run-weekly-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas requests tqdm openpyxl lxml
+
+      #Step 1ъ狥戈
+      - name: Run crawl_stockholders
+        run: |
+          python crawl_stockholders.py
+
+      #Step 2暗だ猂 + 猭10ら
+      - name: Run crawl_stockhandle
+        run: |
+          python crawl_stockhandle.py \
+            --dir stockholders \
+            --threshold 2.0 \
+            --out report_stockholders_weekly_increase.csv
+
+      #肚挡狦璶
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-stockholders-report
+          path: report_stockholders_weekly_increase.csv
+
