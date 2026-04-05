@@ -138,7 +138,7 @@ def fetch_monthly(stock_id, year, month):
         for col in ['最高價', '最低價', '收盤價', '成交量']:
             df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce')
 
-        #df['成交量'] = df['成交量'] * 1000
+        df['成交量'] = df['成交量'] * 1000
         df['sort_date'] = df['日期'].apply(parse_any_date)
 
         return df.dropna(subset=['sort_date'])
