@@ -74,6 +74,7 @@ def _decode_try(b: bytes) -> str:
             continue
     return b.decode("cp950", errors="ignore")
 
+
 def _get_with_retries(url: str, session: requests.Session, limiter: RateLimiter, max_retry: int = 3) -> requests.Response:
     last_exc = None
     for attempt in range(1, max_retry + 1):
@@ -87,6 +88,19 @@ def _get_with_retries(url: str, session: requests.Session, limiter: RateLimiter,
             time.sleep(1.0 * attempt + random.random())
     raise last_exc
 
+
+def get_batch_items(items: List[Tuple[str, str]], batch: Optional[int], batch_size: Optional[int]) -> List[Tuple[str, str]]:
+    if batch is None or batch_size is None:
+        return items
+    if batch < 0:
+        raise ValueError("--batch must be >= 0")
+    if batch_size <= 0:
+        raise ValueError("--batch-size must be > 0")
+
+    start = batch * batch_size
+    end = start + batch_size
+    return items[start:end]
+
 # ---------- 取得 TWSE/TPEx 普通股清單 ----------
 def fetch_isin_table(strMode: int, session: requests.Session, limiter: RateLimiter) -> pd.DataFrame:
     """
@@ -95,7 +109,6 @@ def fetch_isin_table(strMode: int, session: requests.Session, limiter: RateLimit
     """
     url = f"https://isin.twse.com.tw/isin/C_public.jsp?strMode={strMode}"
     r = _get_with_retries(url, session=session, limiter=limiter)
-    # ISIN 網頁常見 cp950/big5，做容錯解碼
     html_txt = _decode_try(r.content)
     try:
         dfs = pd.read_html(StringIO(html_txt))
@@ -108,6 +121,7 @@ def fetch_isin_table(strMode: int, session: requests.Session, limiter: RateLimit
     df = df.iloc[1:].reset_index(drop=True)
     return df
 
+
 def get_all_tickers(limiter: RateLimiter) -> List[Tuple[str, str]]:
     """
     回傳 [(code, name), ...]；以「4~5位數字開頭 + 名稱」判斷，不依賴「備註」欄。
@@ -119,15 +133,17 @@ def get_all_tickers(limiter: RateLimiter) -> List[Tuple[str, str]]:
             col0_candidates = [c for c in df.columns if "代號" in str(c)]
             col0 = col0_candidates[0] if col0_candidates else df.columns[0]
             pat = re.compile(r"^(\d{4,5})\s+(.+)$")
+
             def split_code_name(s) -> Optional[Tuple[str, str]]:
                 s = "" if pd.isna(s) else str(s).strip()
                 m = pat.match(s)
                 if m:
                     return m.group(1), m.group(2)
                 return None
+
             pairs = df[col0].apply(split_code_name).dropna().tolist()
             all_list.extend(pairs)
-    # 去重
+
     seen = set()
     unique: List[Tuple[str, str]] = []
     for code, name in all_list:
@@ -141,6 +157,7 @@ def _clean_columns(df: pd.DataFrame) -> pd.DataFrame:
     rename_map = {c: str(c).replace("\xa0", "").replace(" ", "") for c in df.columns}
     return df.rename(columns=rename_map)
 
+
 def _normalize_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
     def to_num(x):
         if pd.isna(x):
@@ -152,11 +169,13 @@ def _normalize_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
             return float(s)
         except Exception:
             return pd.NA
+
     for c in df.columns:
         if c == "資料日期":
             continue
         df[c] = df[c].apply(to_num)
     return df
+
 
 def _parse_table_details(soup: BeautifulSoup) -> Optional[pd.DataFrame]:
     """優先解析 <table id='Details'>；若找不到，再用 read_html 掃包含「資料日期」列的表；最後文字 fallback。"""
@@ -164,13 +183,11 @@ def _parse_table_details(soup: BeautifulSoup) -> Optional[pd.DataFrame]:
     tbl = soup.find("table", id="Details")
     if tbl is not None:
         raw = pd.read_html(StringIO(str(tbl)))[0]
-        # 若第一列含標頭，把第一列升為欄名
+
         if raw.shape[0] > 0 and raw.iloc[0].astype(str).str.contains("資料日期").any():
             raw.columns = raw.iloc[0]
             raw = raw.iloc[1:].reset_index(drop=True)
 
-        # 有些頁可能在最左有1~2欄樣式/色塊，試著移除
-        # 目標：確保欄名包含「資料日期」且欄數 >= 12
         def try_strip_left(df_in: pd.DataFrame) -> pd.DataFrame:
             df = df_in.copy()
             for drop_n in (1, 2):
@@ -186,14 +203,16 @@ def _parse_table_details(soup: BeautifulSoup) -> Optional[pd.DataFrame]:
             raw = try_strip_left(raw)
 
         df = _clean_columns(raw)
-        # 標準欄名修正
+
         if "資料日期" not in df.columns:
             for c in list(df.columns):
                 if "資料日期" in str(c):
                     df = df.rename(columns={c: "資料日期"})
                     break
+
         if "資料日期" in df.columns:
             df = df[df["資料日期"].astype(str).str.match(r"^20\d{2}", na=False)]
+
         df = df.dropna(how="all").reset_index(drop=True)
         return df if not df.empty else None
 
@@ -202,6 +221,7 @@ def _parse_table_details(soup: BeautifulSoup) -> Optional[pd.DataFrame]:
         tables = pd.read_html(StringIO(str(soup)))
         candidate = None
         header_row_idx = None
+
         for t in tables:
             if t.empty:
                 continue
@@ -211,13 +231,16 @@ def _parse_table_details(soup: BeautifulSoup) -> Optional[pd.DataFrame]:
                 candidate = t.copy()
                 header_row_idx = idxs[0]
                 break
+
         if candidate is not None:
             df = candidate.copy()
             df.columns = df.iloc[header_row_idx]
             df = df.iloc[header_row_idx + 1:].reset_index(drop=True)
             df = _clean_columns(df)
+
             if "資料日期" in df.columns:
                 df = df[df["資料日期"].astype(str).str.match(r"^20\d{2}", na=False)]
+
             df = df.dropna(how="all").reset_index(drop=True)
             return df if not df.empty else None
     except Exception:
@@ -230,8 +253,10 @@ def _parse_table_details(soup: BeautifulSoup) -> Optional[pd.DataFrame]:
         s = re.sub(r"\s+", " ", line).strip()
         if re.match(r"^(20\d{2})(?:[-/ ]?\d{2})(?:[-/ ]?\d{2})?\b", s):
             lines.append(s)
+
     if not lines:
         return None
+
     cols = [
         "資料日期", "集保總張數", "總股東人數", "平均張數/人",
         ">400張大股東持有張數", ">400張大股東持有百分比",
@@ -249,7 +274,9 @@ def _parse_table_details(soup: BeautifulSoup) -> Optional[pd.DataFrame]:
             elif len(row) > len(cols):
                 row = row[:len(cols)]
             records.append(row)
+
     return pd.DataFrame(records, columns=cols) if records else None
+
 
 def parse_stockholders_html(html: str) -> Optional[pd.DataFrame]:
     """封裝解析 + 基本阻擋偵測。"""
@@ -257,10 +284,11 @@ def parse_stockholders_html(html: str) -> Optional[pd.DataFrame]:
     probe = soup.get_text(" ", strip=True)
     if ("系統偵測到廣告阻擋" in probe) and not re.search(r"\b20\d{2}[/-]?\d{2}", probe):
         return None
+
     df = _parse_table_details(soup)
     if df is None or df.empty:
         return None
-    # 標準欄位集合（缺欄補 NA）
+
     standard_cols = [
         "資料日期", "集保總張數", "總股東人數", "平均張數/人",
         ">400張大股東持有張數", ">400張大股東持有百分比",
@@ -283,15 +311,21 @@ def _fetch_html_for_code(code: str, session: requests.Session, limiter: RateLimi
         try:
             r = _get_with_retries(url, session=session, limiter=limiter)
             txt = _decode_try(r.content)
-            # 粗略判斷是否像資料頁
             if ("資料日期" in txt) or re.search(r"\b20\d{2}[/-]?\d{2}", txt):
                 return txt
         except Exception:
             continue
     return None
 
-def fetch_one(code: str, name: str, session: requests.Session, limiter: RateLimiter,
-              skip_existing: bool = False, save_html_samples: int = 10) -> Tuple[str, bool]:
+
+def fetch_one(
+    code: str,
+    name: str,
+    session: requests.Session,
+    limiter: RateLimiter,
+    skip_existing: bool = False,
+    save_html_samples: int = 10,
+) -> Tuple[str, bool]:
     """
     抓取單一代號；回傳 (code, success)
     成功則輸出 CSV；失敗會在前 N 檔保留 HTML 樣本。
@@ -344,6 +378,8 @@ def main():
     parser.add_argument("--rate", type=float, default=4.0, help="全程節流速率 req/sec (default: 4)")
     parser.add_argument("--skip-existing", action="store_true", help="已存在檔案就略過 (可斷點續抓)")
     parser.add_argument("--codes", type=str, default=None, help="只抓指定清單（每行一個代號）")
+    parser.add_argument("--batch", type=int, default=None, help="批次編號，從 0 開始")
+    parser.add_argument("--batch-size", type=int, default=None, help="每批抓取數量")
     parser.add_argument("--no-merge", action="store_true", help="抓完不合併輸出大檔")
     args = parser.parse_args()
 
@@ -365,11 +401,35 @@ def main():
             print("未取得任何代號，請稍後重試（可能是 TWSE ISIN 臨時異常或網路/防火牆影響）。")
             return
 
+    total_tickers = len(tickers)
+
+    if args.batch is not None or args.batch_size is not None:
+        if args.batch is None or args.batch_size is None:
+            raise ValueError("使用 batch 模式時，必須同時提供 --batch 與 --batch-size")
+
+        selected = get_batch_items(tickers, args.batch, args.batch_size)
+        start = args.batch * args.batch_size
+        end = min(start + args.batch_size, total_tickers)
+
+        print(f"Total tickers: {total_tickers}")
+        print(f"Run batch={args.batch}")
+        print(f"Range: {start} ~ {end}")
+        print(f"Selected: {len(selected)}")
+
+        tickers = selected
+
+        if not tickers:
+            print("此 batch 無資料可抓。")
+            return
+
     success_codes: List[str] = []
     fail_codes: List[str] = []
 
     with requests.Session() as session:
-        adapter = requests.adapters.HTTPAdapter(pool_connections=args.workers, pool_maxsize=args.workers)
+        adapter = requests.adapters.HTTPAdapter(
+            pool_connections=args.workers,
+            pool_maxsize=args.workers
+        )
         session.mount("http://", adapter)
         session.mount("https://", adapter)
 
@@ -387,7 +447,11 @@ def main():
                     fail_codes.append(code)
 
     # 輸出 missing.txt
-    with open(os.path.join(LOG_DIR, "missing.txt"), "w", encoding="utf-8") as f:
+    missing_suffix = ""
+    if args.batch is not None and args.batch_size is not None:
+        missing_suffix = f"_batch_{args.batch:02d}"
+
+    with open(os.path.join(LOG_DIR, f"missing{missing_suffix}.txt"), "w", encoding="utf-8") as f:
         for code in fail_codes:
             f.write(f"{code}\n")
 
@@ -402,6 +466,7 @@ def main():
                 merged.append(df)
             except Exception:
                 continue
+
         if merged:
             all_df = pd.concat(merged, ignore_index=True)
             all_df.to_parquet("all_stockholders.parquet", index=False)
@@ -413,8 +478,12 @@ def main():
     print(f"檔案輸出資料夾：{OUT_DIR}")
     if not args.no_merge:
         print("合併檔：all_stockholders.parquet、all_stockholders_sample.csv")
-    print("抓不到或無明細的清單：logs/missing.txt")
+    if args.batch is not None and args.batch_size is not None:
+        print(f"抓不到或無明細的清單：logs/missing_batch_{args.batch:02d}.txt")
+    else:
+        print("抓不到或無明細的清單：logs/missing.txt")
     print("若仍有大量失敗，請檢查 logs/html_samples/ 內的 .html 樣本以了解實際頁面型態。")
+
 
 if __name__ == "__main__":
     main()
