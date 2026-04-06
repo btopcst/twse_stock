@@ -56,11 +56,11 @@ KD_MAX_THD = 50
 
 CHART_DIRS = {
     '布林上軌突破+量增': "stockData/BL",
-    'MACD 柱狀體首次轉正': "stockData/MACD",
+    #'MACD 柱狀體首次轉正': "stockData/MACD",
     #'均線糾結': "stockData/均線糾結",
-    '月季均線首向上': "stockData/月季均線首向上",
+    #'月季均線首向上': "stockData/月季均線首向上",
     #'布林壓縮': "stockData/BLC",
-    '回測季線': "stockData/backSeason",
+    #'回測季線': "stockData/backSeason",
     #'KD 黃金交叉': "stockData/KD_GC"
 }
 
@@ -589,13 +589,13 @@ def process_all_stocks() -> bool:
         except Exception:
             pass
 
-        try:
-            if all(pd.notna([latest.get('季平均價格'), price, volume])):
-                if price < latest['季平均價格'] and latest['月均線'] == '向上' and latest['季均線'] == '向上' and float(volume) > VOLUME_THD:
-                    summary_rows.append([stock_name, stock_id, date, price, '回測季線'])
-                    plot_chart(df.copy(), stock_name, stock_id, '回測季線')
-        except Exception:
-            pass
+        #try:
+            #if all(pd.notna([latest.get('季平均價格'), price, volume])):
+                #if price < latest['季平均價格'] and latest['月均線'] == '向上' and latest['季均線'] == '向上' and float(volume) > VOLUME_THD:
+                    #summary_rows.append([stock_name, stock_id, date, price, '回測季線'])
+                    #plot_chart(df.copy(), stock_name, stock_id, '回測季線')
+        #except Exception:
+            #pass
 
         #try:
             #if latest.get('均線糾結') == '糾結' and float(volume) > VOLUME_MIN_THD:
@@ -604,20 +604,20 @@ def process_all_stocks() -> bool:
         #except Exception:
             #pass
 
-        try:
-            if find_first_two_up(df) == 1 and float(volume) > VOLUME_THD:
-                summary_rows.append([stock_name, stock_id, date, price, '月季均線首向上'])
-                plot_chart(df.copy(), stock_name, stock_id, '月季均線首向上')
-        except Exception:
-            pass
+        #try:
+            #if find_first_two_up(df) == 1 and float(volume) > VOLUME_THD:
+                #summary_rows.append([stock_name, stock_id, date, price, '月季均線首向上'])
+                #plot_chart(df.copy(), stock_name, stock_id, '月季均線首向上')
+        #except Exception:
+            #pass
 
-        try:
-            if has_macd_hist(df) and len(df) >= 2:
-                if df.iloc[-2]['MACD_HIST'] <= 0 and df.iloc[-1]['MACD_HIST'] > 0 and latest['月均線'] == '向上' and latest['季均線'] == '向上' and float(volume) > VOLUME_THD:
-                    summary_rows.append([stock_name, stock_id, date, price, 'MACD 柱狀體首次轉正'])
-                    plot_chart(df.copy(), stock_name, stock_id, 'MACD 柱狀體首次轉正')
-        except Exception:
-            pass
+        #try:
+            #if has_macd_hist(df) and len(df) >= 2:
+                #if df.iloc[-2]['MACD_HIST'] <= 0 and df.iloc[-1]['MACD_HIST'] > 0 and latest['月均線'] == '向上' and latest['季均線'] == '向上' and float(volume) > VOLUME_THD:
+                    #summary_rows.append([stock_name, stock_id, date, price, 'MACD 柱狀體首次轉正'])
+                    #plot_chart(df.copy(), stock_name, stock_id, 'MACD 柱狀體首次轉正')
+        #except Exception:
+            #pass
 
         #try:
             #if is_bollinger_constricted(df) and float(volume) > VOLUME_MIN_THD and float(price) > PRICE_THD:
